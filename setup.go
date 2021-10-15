@@ -1,6 +1,7 @@
 package main
+import "os"
 
-const CONN = "tera:111111@tcp(127.0.0.1:3306)/sqlt"
+
 const AFTERYEAR = "2015"
 
 type Company struct {
@@ -11,8 +12,12 @@ type Company struct {
 	indres     string
 }
 
-var forDate = "2019-06-30"
 
-//TODO connection string in separated file
+var forDate=os.Args[1]
+
+
+
 //TODO writing error logs in separated text file
 //TODO set argument and its control
+
+var conn string

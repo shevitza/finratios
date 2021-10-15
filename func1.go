@@ -6,6 +6,8 @@ import (
 	"log"
 	s "strings"
 
+	"time"
+
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -70,21 +72,26 @@ func ratiocalc_func1(c *Company, dbvalues map[string]float64) float64 {
 		ratio = dbvalues[c.ind1] / dbvalues[c.ind2]
 	} else {
 		ratio = 0.
-		//TODO set error
 	}
 
 	return ratio
 }
 
 func sqlcalc_func1(c *Company) {
-	db, err := sql.Open("mysql", CONN)
-	defer db.Close()
+	db, err := sql.Open("mysql", conn)
+
 	if err != nil {
 		log.Fatal(err)
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Connection Error, sqlcalc_func1: "+sql.ErrConnDone.Error()+"\n")
 	}
-
+	defer db.Close()
 	sqlselect := sqlselect_func1(c)
 	res, err := db.Query(sqlselect)
+	if err != nil {
+		log.Fatal(err)
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Connection Error, sqlcalc_func1: "+sql.ErrNoRows.Error()+"\n")
+
+	}
 	defer res.Close()
 
 	//Get indicator values for ratio calculation
@@ -106,7 +113,9 @@ func sqlcalc_func1(c *Company) {
 	_, err = db.Exec(sqlreplace)
 
 	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Replace (Exec) Error, sqlcalc_func1: "+sql.ErrConnDone.Error()+"\n")
 		log.Fatal(err)
+
 	}
 
 }

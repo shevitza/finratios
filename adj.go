@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	s "strings"
+	"time"
 )
 
 func calc_adj(indicators map[string]string, datecompany []string, numrows int) {
@@ -41,21 +42,22 @@ func calc_adj(indicators map[string]string, datecompany []string, numrows int) {
 }
 
 func setTheSame(c Company) {
-	db, err := sql.Open("mysql", CONN)
-	
+	db, err := sql.Open("mysql", conn)
+
 	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Connection  Error, setTheSame: "+"\n")
 		log.Fatal(err)
 	}
 	defer db.Close()
 
-	
 	sqlstring := "REPLACE INTO finval (companyID, reportDate, indicatorID, finValue) select companyID, reportDate, 67, finvalue from finval"
 	sqlstring = sqlstring + " where companyID=" + c.companyID + " and reportDate='" + c.reportDate + "' and indicatorID=" + c.ind1 + "; "
 	_, err = db.Exec(sqlstring)
 
 	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Replace  Error, setTheSame: "+"\n")
 		log.Fatal(err)
-		fmt.Println(db)
+
 	}
 
 }
@@ -64,17 +66,19 @@ func adjCalc(c Company) {
 	temp := c.reportDate
 	year := temp[0:4]
 
-	db, err := sql.Open("mysql", CONN)
-	
+	db, err := sql.Open("mysql", conn)
+
 	if err != nil {
 		log.Fatal(err)
-		fmt.Println(db)
 	}
 	defer db.Close()
 	sqlstring := "SELECT reportDate, finValue FROM finval WHERE companyID=" + c.companyID + " AND indicatorID=" + c.ind1 + " AND year(reportDate)=" + year + ";"
 
 	res, err := db.Query(sqlstring)
-	defer res.Close()
+	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Select Error, adjCalc: "+"\n")
+		log.Fatal(err)
+	}
 
 	dbvalues := make(map[string]float64)
 	var key string
@@ -82,12 +86,14 @@ func adjCalc(c Company) {
 	for res.Next() {
 		err := res.Scan(&key, &val)
 		if err != nil {
+			logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Scan Error, adjCalc: "+"\n")
 			log.Fatal(err)
-			fmt.Println(res)
+
 		}
 		dbvalues[key] = val
 	}
-	
+	defer res.Close()
+
 	dbvalues["-06-30"] = dbvalues[year+"-06-30"] - dbvalues[year+"-03-31"]
 	dbvalues["-09-30"] = dbvalues[year+"-09-30"] - dbvalues[year+"-06-30"]
 	dbvalues["-12-31"] = dbvalues[year+"-12-31"] - dbvalues[year+"-09-30"]
@@ -100,6 +106,7 @@ func adjCalc(c Company) {
 
 	_, err = db.Exec(sqlexec)
 	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Replace Error, adjCalc: "+"\n")
 		log.Fatal(err)
 	}
 

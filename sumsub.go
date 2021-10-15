@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	s "strings"
+	"time"
 )
 
 func calc_sumsub(indicators map[string]string, datecompany []string) {
@@ -55,12 +56,18 @@ func sqlselect_sumsub(indicators map[string]string, dateAndCompany string) {
 	}
 }
 func sqlcalc_sumsub(sqlSumSub string) float64 {
-	db, err := sql.Open("mysql", CONN)
-	res, err := db.Query(sqlSumSub)
-	defer db.Close()
+	db, err := sql.Open("mysql", conn)
 	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Connection Error, sqlcalc_sumsub: "+sql.ErrConnDone.Error()+"\n")
 		log.Fatal(err)
 	}
+	res, err := db.Query(sqlSumSub)
+
+	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Select Error, sqlcalc_sumsub: "+sql.ErrNoRows.Error()+"\n")
+		log.Fatal(err)
+	}
+	defer db.Close()
 	//Get indicator values for ratio calculation
 	var dbvalues float64
 
@@ -68,6 +75,7 @@ func sqlcalc_sumsub(sqlSumSub string) float64 {
 	for res.Next() {
 		err := res.Scan(&val)
 		if err != nil {
+			logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Select Error, sqlcalc_sumsub: "+sql.ErrNoRows.Error()+"\n")
 			log.Fatal(err)
 		}
 		dbvalues = dbvalues + float64(val)
@@ -79,10 +87,15 @@ func sqlcalc_sumsub(sqlSumSub string) float64 {
 func replace_sumsub_value(companyID, reportDate, indicatorID string, dbvalues float64) {
 	dbvalues_string := fmt.Sprintf("%f", dbvalues)
 	sqlreplace := "REPLACE into finval values(" + string(companyID) + ", '" + reportDate + "', " + string(indicatorID) + ", " + dbvalues_string + ", '',  current_timestamp());"
-	db, err := sql.Open("mysql", CONN)
+	db, err := sql.Open("mysql", conn)
+	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Connection Error, replace_sumsub_value: "+sql.ErrConnDone.Error()+"\n")
+		log.Fatal(err)
+	}
 	defer db.Close()
 	_, err = db.Exec(sqlreplace)
 	if err != nil {
+		logerror("finratios.log", time.Now().Format("2006.01.02 15:04:05")+"  Replace (Exec) Error, replace_sumsub_value: "+"\n")
 		log.Fatal(err)
 	}
 }

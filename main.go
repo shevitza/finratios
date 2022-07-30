@@ -61,7 +61,7 @@ func init() {
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
-
+//this is from .env file
 	conn = os.Getenv("DBUSER") + ":" + os.Getenv("DBPASS") + "@tcp(" + os.Getenv("HOST") + ":" + os.Getenv("PORT") + ")/" + os.Getenv("DBNAME")
 
 }
